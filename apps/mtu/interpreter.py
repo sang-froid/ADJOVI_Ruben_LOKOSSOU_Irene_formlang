@@ -12,15 +12,21 @@ class UniversalInterpreter:
         self._U = UniversalTM()
 
     def run(self, machine, word, **kw):
-        # TODO : encoder `machine` puis déléguer à self._U.run(<M>, word, **kw).
-        raise NotImplementedError("UniversalInterpreter.run — à compléter")
+        encoded = encode(machine)
+        return self._U.run(encoded, word, **kw)
 
 
 def addition_via_utm(n: int, m: int) -> int:
-    # TODO : lancer ADD via la machine universelle ; compter les '1' du ruban.
-    raise NotImplementedError("addition_via_utm — à compléter")
+    interp = UniversalInterpreter()
+    tape = "1" * n + "+" + "1" * m
+    return interp.run(ADD, tape).tape.count("1")
 
 
 def soustraction_via_utm(n: int, m: int) -> int:
-    # TODO : si m > n -> 0 ; sinon lancer SUB via U.
-    raise NotImplementedError("soustraction_via_utm — à compléter")
+    if m == 0:
+        return n
+    if m >= n:
+        return 0
+    interp = UniversalInterpreter()
+    tape = "1" * n + "-" + "1" * m
+    return interp.run(SUB, tape).tape.count("1")

@@ -13,13 +13,27 @@ from apps.shield.decomposer import (
 
 
 def analyze_word(raw: str) -> dict:
-    # TODO (E5.1) : normaliser (FST) puis détecter 'or' (AFD) puis délimiteurs (PDA).
-    raise NotImplementedError("analyze_word — à compléter (E5.1)")
+    normalise = leet_normalize(raw)
+    or_detecte = contains_or(normalise)
+    delimiteurs = well_parenthesized(normalise)
+    return {
+        "normalisé(FST)":      normalise,
+        "facteur_or(AFD)":     or_detecte,
+        "délimiteurs_ok(PDA)": delimiteurs,
+    }
 
 
 def analyze_morpho(word: str, vocab: set) -> dict:
-    # TODO (E5.1) : discover(PRE/SUF) -> segment_to_tree -> classify(BUTA).
-    raise NotImplementedError("analyze_morpho — à compléter (E5.1)")
+    PRE = discover(vocab, prefix_side=True)
+    SUF = discover(vocab, prefix_side=False)
+    tree = segment_to_tree(word, PRE, SUF)
+    A = morpho_automaton()
+    classe = classify(A, tree)
+    return {
+        "prefixes":     PRE,
+        "suffixes":     SUF,
+        "classe(BUTA)": classe,
+    }
 
 
 def demo_shield() -> list:

@@ -33,7 +33,6 @@ class TuringMachine:
         return "".join(tape.get(i, self.blank) for i in range(lo, hi + 1))
 
     def run(self, word: str, max_steps: int = 1_000_000, trace: bool = False) -> "TMResult":
-        # Initialiser le ruban comme dictionnaire position -> symbole
         tape = {i: c for i, c in enumerate(word)}
         head = 0
         state = self.start

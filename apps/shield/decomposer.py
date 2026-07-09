@@ -9,14 +9,38 @@ _ALL = (SAFE, OVR, ROLE, DANGER)
 
 
 def _seq(x, y):
-    # TODO (E3.3) : règle de fusion pour seq.
-    raise NotImplementedError("_seq — à compléter (E3.3)")
+    if x == DANGER or y == DANGER:
+        return DANGER
+    if {x, y} == {OVR, ROLE}:
+        return DANGER
+    if x == DANGER or y == DANGER:
+        return DANGER
+    # sinon on prend la sévérité maximale
+    sx = _SEV.get(x, 0)
+    sy = _SEV.get(y, 0)
+    return _BY_SEV[max(sx, sy)]
 
 
 def shield_automaton() -> TreeAutomaton:
     A = TreeAutomaton(final_states={DANGER})
-    # TODO (E3.3) : ajouter les règles avec A.add_rule(...).
-    raise NotImplementedError("shield_automaton — à compléter (E3.3)")
+
+    # Feuilles
+    A.add_rule("txt",  (), SAFE)
+    A.add_rule("enc",  (), SAFE)
+    A.add_rule("ovr",  (), OVR)
+    A.add_rule("role", (), ROLE)
+
+    # seq : produit cartésien de tous les états
+    for x in _ALL:
+        for y in _ALL:
+            A.add_rule("seq", (x, y), _seq(x, y))
+
+    # frame et sys : propagent et escaladent vers DANGER
+    for x in _ALL:
+        A.add_rule("frame", (x,), DANGER if x in (OVR, ROLE, DANGER) else SAFE)
+        A.add_rule("sys",   (x,), DANGER if x in (OVR, ROLE, DANGER) else SAFE)
+
+    return A
 
 
 # ----- constructeurs FOURNIS ------------------------------------------------
@@ -34,14 +58,25 @@ def is_blocked(A: TreeAutomaton, t: Term) -> bool:
 
 # ----- P4.5 : « dangereux ET doublement encodé » (produit A x A_enc) ---------
 def enc_automaton() -> TreeAutomaton:
-    # TODO (E3.6) : automate qui COMPTE les feuilles `enc` (plafonné à 2),
-    #   final = {2}. Même signature que shield_automaton :
-    #     feuilles txt/ovr/role -> 0, enc -> 1
-    #     seq(x,y) -> min(2, x+y) ; frame(x)->x ; sys(x)->x  (pour x in 0,1,2)
-    raise NotImplementedError("enc_automaton — à compléter (E3.6)")
+    A = TreeAutomaton(final_states={2})
+
+    A.add_rule("txt",  (), 0)
+    A.add_rule("ovr",  (), 0)
+    A.add_rule("role", (), 0)
+    A.add_rule("enc",  (), 1)
+
+    for x in (0, 1, 2):
+        for y in (0, 1, 2):
+            A.add_rule("seq", (x, y), min(2, x + y))
+        A.add_rule("frame", (x,), x)
+        A.add_rule("sys",   (x,), x)
+
+    return A
 
 
 def dangerous_and_double_encoded() -> TreeAutomaton:
-    # TODO (E3.6) : intersection via formlang.tree.product :
-    #   return product(shield_automaton(), enc_automaton())
-    raise NotImplementedError("dangerous_and_double_encoded — à compléter (E3.6)")
+    from formlang.tree import product
+    return product(shield_automaton(), enc_automaton())
+
+
+

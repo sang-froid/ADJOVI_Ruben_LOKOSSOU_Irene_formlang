@@ -31,14 +31,31 @@ class TreeAutomaton:
         self.delta[(symbol, tuple(child_states))] = result
 
     def run(self, t: "Term"):
-        # TODO (E3.1) : étiquetage POST-ORDRE (feuilles -> racine).
-        raise NotImplementedError("TreeAutomaton.run — à compléter (E3.1)")
+        child_states = []
+        for child in t.children:
+            state = self.run(child)
+            if isinstance(state, _Reject):
+                return REJECT
+            child_states.append(state)
+        
+        # Chercher la règle correspondante
+        key = (t.symbol, tuple(child_states))
+        if key not in self.delta:
+            return REJECT
+        return self.delta[key]
 
     def accepts(self, t: "Term") -> bool:
-        # TODO (E3.1) : True ssi run(t) in self.final.
-        raise NotImplementedError("TreeAutomaton.accepts — à compléter (E3.1)")
+        return self.run(t) in self.final
 
 
 def product(a1: "TreeAutomaton", a2: "TreeAutomaton") -> "TreeAutomaton":
-    # TODO (E3.4) : automate produit, L = L(a1) inter L(a2).
-    raise NotImplementedError("product — à compléter (E3.4)")
+    final_pairs = {(f1, f2) for f1 in a1.final for f2 in a2.final}
+    P = TreeAutomaton(final_states=final_pairs)
+
+    for (sym1, kids1), r1 in a1.delta.items():
+        for (sym2, kids2), r2 in a2.delta.items():
+            if sym1 == sym2 and len(kids1) == len(kids2):
+                paired_kids = tuple(zip(kids1, kids2))
+                P.add_rule(sym1, paired_kids, (r1, r2))
+
+    return P

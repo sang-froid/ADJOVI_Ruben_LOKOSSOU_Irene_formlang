@@ -53,6 +53,10 @@ def main(argv=None):
     p = argparse.ArgumentParser(description="Pipeline formlang")
     p.add_argument("--word")
     p.add_argument("--morpho")
+    p.add_argument("--hashcons-bench", action="store_true",
+                    help="Bonus Jour 5 : mesure hash-consing sur 10 000 mots (agglutinant vs isolant)")
+    p.add_argument("--mul-utm", nargs=2, type=int, metavar=("M", "N"),
+                    help="Bonus Jour 4 : m*n via la table MUL exécutée par la machine universelle")
     args = p.parse_args(argv)
     if args.word:
         for k, v in analyze_word(args.word).items():
@@ -60,7 +64,16 @@ def main(argv=None):
     if args.morpho:
         from apps.morpho.corpora import corpus_A
         print(analyze_morpho(args.morpho, set(corpus_A())))
-    if not args.word and not args.morpho:
+    if args.mul_utm:
+        from apps.mtu.interpreter import multiplication_via_utm
+        m, n = args.mul_utm
+        print(f"{m} * {n} (MUL via UTM) = {multiplication_via_utm(m, n)}")
+    if args.hashcons_bench:
+        from apps.hashcons.benchmark import run_benchmark
+        for report in run_benchmark():
+            print(report)
+            print()
+    if not any([args.word, args.morpho, args.hashcons_bench, args.mul_utm]):
         print("== démo Shield (AttackDecomposer) ==")
         for name, blocked in demo_shield():
             print(f"  {'BLOQUÉ ' if blocked else 'OK     '} {name}")

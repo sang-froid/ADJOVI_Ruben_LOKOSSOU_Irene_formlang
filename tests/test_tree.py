@@ -66,3 +66,44 @@ def test_shield_double_encodage_P45():
     assert P.accepts(sys(seq(enc(), seq(enc(), role())))) is True
     assert P.accepts(sys(role())) is False
     assert P.accepts(seq(enc(), enc())) is False
+
+def test_infixation():
+    from apps.morpho.automaton import (
+        morpho_automaton_with_infix, build_word_infix, classify
+    )
+    A = morpho_automaton_with_infix()
+    # mot infixé : racine "str" + infixe "um" + racine "ing" -> "strumming"
+    t = build_word_infix([], "str", "um", "ing", [])
+    assert classify(A, t) == "INFIXED"
+    # avec préfixe en plus
+    t2 = build_word_infix(["re"], "str", "um", "ing", [])
+    assert classify(A, t2) == "INFIXED"
+
+def test_minimisation_buta():
+    from formlang.tree import TreeAutomaton, minimize_buta, Term
+
+    # Automate avec un état final redondant :
+    # "f" mène à q1 (final)
+    # "g" mène à q2 (final aussi, identique à q1)
+    # "a" mène à q0 (non-final)
+    # "b" mène à q3 (non-final, identique à q0)
+    A = TreeAutomaton(final_states={"q1", "q2"})
+    A.add_rule("f", (), "q1")
+    A.add_rule("g", (), "q2")
+    A.add_rule("a", (), "q0")
+    A.add_rule("b", (), "q3")
+
+    M = minimize_buta(A)
+
+    # q1 et q2 doivent être fusionnés (tous deux finaux, même comportement)
+    # q0 et q3 doivent être fusionnés (tous deux non-finaux, même comportement)
+    all_states = set()
+    for (_, _), res in M.delta.items():
+        all_states.add(res)
+    all_states |= M.final
+
+    assert len(all_states) == 2   # un état final + un état non-final
+    assert M.accepts(Term("f")) is True
+    assert M.accepts(Term("g")) is True
+    assert M.accepts(Term("a")) is False
+    assert M.accepts(Term("b")) is False

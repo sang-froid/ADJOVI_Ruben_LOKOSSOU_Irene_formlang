@@ -17,3 +17,25 @@ def test_nerode_trois_classes():
     assert len(classes) == 3
     assert equivalent("o", "ao", contains_or, suffixes)
     assert not equivalent("o", "a", contains_or, suffixes)
+
+def test_cyk():
+    from formlang.cfg import cyk, CFG
+
+    # Grammaire simple en CNF : S -> A B | A S, A -> a, B -> b
+    # Langage : a^n b avec n >= 1
+    cfg = CFG(
+        rules={
+            "S": [("A", "B"), ("A", "S")],
+            "A": [("a",)],
+            "B": [("b",)],
+        },
+        start="S",
+        nonterminals={"S", "A", "B"},
+    )
+    assert cyk("ab",   cfg) is True
+    assert cyk("aab",  cfg) is True
+    assert cyk("aaab", cfg) is True
+    assert cyk("b",    cfg) is False
+    assert cyk("a",    cfg) is False
+    assert cyk("ba",   cfg) is False
+    assert cyk("",     cfg) is False

@@ -59,3 +59,62 @@ def product(a1: "TreeAutomaton", a2: "TreeAutomaton") -> "TreeAutomaton":
                 P.add_rule(sym1, paired_kids, (r1, r2))
 
     return P
+
+def minimize_buta(a: "TreeAutomaton") -> "TreeAutomaton":
+    """Minimisation d'un BUTA par raffinement de partition."""
+
+    # Collecter tous les états
+    states = set(a.final)
+    for (sym, kids), res in a.delta.items():
+        states.add(res)
+        for k in kids:
+            states.add(k)
+
+    # Partition initiale : finaux vs non-finaux
+    finals     = frozenset(s for s in states if s in a.final)
+    non_finals = frozenset(s for s in states if s not in a.final)
+    partition  = []
+    if finals:     partition.append(finals)
+    if non_finals: partition.append(non_finals)
+
+    def block_id(s):
+        for i, b in enumerate(partition):
+            if s in b:
+                return i
+        return -1
+
+    # Raffinement
+    changed = True
+    while changed:
+        changed = False
+        new_partition = []
+        for block in partition:
+            groups = {}
+            for s in block:
+                # Signature : pour chaque règle où s apparaît comme enfant,
+                # quel symbole et quels blocs des autres enfants
+                sig = []
+                for (sym, kids), res in a.delta.items():
+                    for pos, k in enumerate(kids):
+                        if k == s:
+                            other_blocks = tuple(
+                                block_id(kids[j]) for j in range(len(kids)) if j != pos
+                            )
+                            sig.append((sym, pos, other_blocks, block_id(res)))
+                sig = tuple(sorted(sig))
+                groups.setdefault(sig, set()).add(s)
+            for grp in groups.values():
+                new_partition.append(frozenset(grp))
+            if len(groups) > 1:
+                changed = True
+        partition = new_partition
+
+    # Représentants : prendre le min de chaque bloc
+    rep = {s: min(b) for b in partition for s in b}
+
+    # Reconstruire
+    new_a = TreeAutomaton(final_states={rep[s] for s in a.final})
+    for (sym, kids), res in a.delta.items():
+        new_a.add_rule(sym, tuple(rep[k] for k in kids), rep[res])
+
+    return new_a

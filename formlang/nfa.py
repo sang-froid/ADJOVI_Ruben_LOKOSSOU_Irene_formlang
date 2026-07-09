@@ -60,3 +60,118 @@ class NFA:
                     queue.append(nxt)
 
         return DFA(trans, name(start_set), accept, self.alphabet)
+
+def thompson(regex: str) -> "NFA":
+    """Construction de Thompson : regex -> AFN avec transitions epsilon."""
+    counter = [0]
+
+    def new_state():
+        s = f"s{counter[0]}"
+        counter[0] += 1
+        return s
+
+    def from_char(c):
+        # Un caractère : un état initial, une transition, un état final
+        s0, s1 = new_state(), new_state()
+        return NFA(
+            transitions={(s0, c): {s1}},
+            start=s0, accept={s1}, alphabet={c}
+        )
+
+    def epsilon():
+        # Mot vide : transition epsilon directe
+        s0, s1 = new_state(), new_state()
+        return NFA(
+            transitions={(s0, ""): {s1}},
+            start=s0, accept={s1}, alphabet=set()
+        )
+
+    def concat(n1, n2):
+        # n1 puis n2 : relier l'état final de n1 à l'état initial de n2
+        trans = {**n1.transitions, **n2.transitions}
+        for f in n1.accept:
+            trans.setdefault((f, ""), set()).add(n2.start)
+        return NFA(
+            transitions=trans,
+            start=n1.start, accept=n2.accept,
+            alphabet=n1.alphabet | n2.alphabet
+        )
+
+    def union(n1, n2):
+        # n1 | n2 : nouvel état initial avec epsilon vers les deux
+        s0, sf = new_state(), new_state()
+        trans = {**n1.transitions, **n2.transitions}
+        trans[(s0, "")] = {n1.start, n2.start}
+        for f in n1.accept | n2.accept:
+            trans.setdefault((f, ""), set()).add(sf)
+        return NFA(
+            transitions=trans,
+            start=s0, accept={sf},
+            alphabet=n1.alphabet | n2.alphabet
+        )
+
+    def star(n):
+        # n* : nouvel état initial et final, epsilon vers n et retour
+        s0, sf = new_state(), new_state()
+        trans = {**n.transitions}
+        trans[(s0, "")] = {n.start, sf}
+        for f in n.accept:
+            trans.setdefault((f, ""), set()).update({n.start, sf})
+        return NFA(
+            transitions=trans,
+            start=s0, accept={sf},
+            alphabet=n.alphabet
+        )
+
+    # Parser récursif descendant
+    # Grammaire : expr = term ('|' term)*
+    #             term = factor factor*
+    #             factor = atom ('*')?
+    #             atom = char | '(' expr ')'
+
+    pos = [0]
+
+    def peek():
+        return regex[pos[0]] if pos[0] < len(regex) else None
+
+    def consume(c=None):
+        ch = regex[pos[0]]
+        if c and ch != c:
+            raise ValueError(f"Attendu {c}, trouvé {ch}")
+        pos[0] += 1
+        return ch
+
+    def parse_expr():
+        node = parse_term()
+        while peek() == '|':
+            consume('|')
+            node = union(node, parse_term())
+        return node
+
+    def parse_term():
+        node = parse_factor()
+        while peek() and peek() not in ('|', ')'):
+            node = concat(node, parse_factor())
+        return node
+
+    def parse_factor():
+        node = parse_atom()
+        if peek() == '*':
+            consume('*')
+            node = star(node)
+        return node
+
+    def parse_atom():
+        c = peek()
+        if c == '(':
+            consume('(')
+            node = parse_expr()
+            consume(')')
+            return node
+        elif c and c not in ('|', ')', '*'):
+            consume()
+            return from_char(c)
+        else:
+            return epsilon()
+
+    return parse_expr()

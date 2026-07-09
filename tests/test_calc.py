@@ -27,3 +27,20 @@ def test_division_par_zero():
     import pytest
     with pytest.raises(ZeroDivisionError):
         Calculatrice().division(3, 0)
+
+def test_mul_monolithique():
+    from apps.mtu.machines import MUL
+    assert MUL.run("11*111=").tape.count("1") == 6
+    assert MUL.run("111*11=").tape.count("1") == 6
+    assert MUL.run("1*1111=").tape.count("1") == 4
+    assert MUL.run("11111*11=").tape.count("1") == 10
+
+
+def test_mul_monolithique_via_utm():
+    """Bonus : la MÊME table MUL, non ré-exécutée en Python mais simulée par la
+    machine universelle (formlang.utm.UniversalTM), comme addition_via_utm."""
+    from apps.mtu.interpreter import multiplication_via_utm
+    assert multiplication_via_utm(2, 3) == 6
+    assert multiplication_via_utm(5, 2) == 10
+    assert multiplication_via_utm(0, 4) == 0
+    assert multiplication_via_utm(4, 4) == 16

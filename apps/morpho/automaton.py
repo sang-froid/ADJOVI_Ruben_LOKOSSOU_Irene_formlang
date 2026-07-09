@@ -58,7 +58,11 @@ def _contains(t: Term, sym: str) -> bool:
 def classify(A: TreeAutomaton, t: Term) -> str:
     if not A.accepts(t):
         return "INVALID"
-    p, s = _contains(t, "prefix"), _contains(t, "suffix")
+    p  = _contains(t, "prefix")
+    s  = _contains(t, "suffix")
+    i  = _contains(t, "infix")
+    if i:
+        return "INFIXED"
     if p and s:
         return "CIRCUMFIXED"
     if s:
@@ -66,3 +70,42 @@ def classify(A: TreeAutomaton, t: Term) -> str:
     if p:
         return "PREFIXED"
     return "BARE"
+
+# ----- constructeurs infixation (bonus) -------------------------------------
+def infix(s):      return Term("infix", label=s)
+def infixes(h, t): return Term("infixes", (h, t))
+def root_split(left, inf, right): return Term("root_split", (left, inf, right))
+def word_infix(p, r): return Term("word_infix", (p, r))
+
+
+def build_word_infix(pres, root_left, inf, root_right, sufs) -> Term:
+    pc = nil()
+    for p in reversed(pres):
+        pc = prefixes(prefix(p), pc)
+    sc = nil()
+    for s in reversed(sufs):
+        sc = suffixes(suffix(s), sc)
+    rs = root_split(root(root_left), infix(inf), root(root_right))
+    return word_infix(pc, rest(rs, sc))
+
+
+def morpho_automaton_with_infix() -> TreeAutomaton:
+    A = morpho_automaton()   # récupérer toutes les règles existantes
+
+    # Nouvelles feuilles
+    A.add_rule("infix", (), "INF")
+
+    # Chaîne d'infixes
+    A.add_rule("infixes", ("INF", "NIL"),   "INFS")
+    A.add_rule("infixes", ("INF", "INFS"),  "INFS")
+
+    # root_split : racine coupée avec infixe au milieu
+    A.add_rule("root_split", ("ROOT", "INF", "ROOT"), "ROOT_INF")
+
+    # rest et word_infix
+    A.add_rule("rest",       ("ROOT_INF", "NIL"),   "REST")
+    A.add_rule("rest",       ("ROOT_INF", "SUFS"),  "REST")
+    A.add_rule("word_infix", ("NIL",   "REST"),     "WORD")
+    A.add_rule("word_infix", ("PREFS", "REST"),     "WORD")
+
+    return A

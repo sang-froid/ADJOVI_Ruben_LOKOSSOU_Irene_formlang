@@ -4,7 +4,7 @@ L'interpréteur ne doit PAS réécrire de boucle d'exécution : il encode M puis
 DÉLÈGUE à formlang.utm.UniversalTM.  -> Jour 4 (E4.2 / E4.4)."""
 from __future__ import annotations
 from formlang.utm import UniversalTM, encode
-from .machines import ADD, SUB
+from .machines import ADD, SUB, MUL
 
 
 class UniversalInterpreter:
@@ -30,3 +30,12 @@ def soustraction_via_utm(n: int, m: int) -> int:
     interp = UniversalInterpreter()
     tape = "1" * n + "-" + "1" * m
     return interp.run(SUB, tape).tape.count("1")
+
+
+def multiplication_via_utm(n: int, m: int) -> int:
+    """Bonus (E3.6) : la table monolithique MUL n'est pas ré-exécutée en boucle
+    Python -> elle est encodée (`encode`) puis simulée par la machine
+    universelle (`UniversalTM`), exactement comme ADD/SUB au-dessus."""
+    interp = UniversalInterpreter()
+    tape = "1" * n + "*" + "1" * m + "="
+    return interp.run(MUL, tape).tape.count("1")

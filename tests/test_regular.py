@@ -46,3 +46,20 @@ def test_delimiters_pda():
     assert well_parenthesized("[a(r]") is False
     assert well_parenthesized("([)]") is False
     assert well_parenthesized("aor") is True
+
+def test_thompson():
+    from formlang.nfa import thompson
+    # regex : (a|b)*b — tous les mots sur {a,b} finissant par b
+    nfa = thompson("(a|b)*b")
+    assert nfa.accepts("b")       is True
+    assert nfa.accepts("ab")      is True
+    assert nfa.accepts("aab")     is True
+    assert nfa.accepts("a")       is False
+    assert nfa.accepts("")        is False
+    assert nfa.accepts("ba")      is False
+    # regex : a* — zéro ou plusieurs a
+    nfa2 = thompson("a*")
+    assert nfa2.accepts("")       is True
+    assert nfa2.accepts("a")      is True
+    assert nfa2.accepts("aaa")    is True
+    assert nfa2.accepts("b")      is False
